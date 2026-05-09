@@ -1,5 +1,7 @@
 package ru.example.rxjava.core;
 
+import ru.example.rxjava.schedulers.Scheduler;
+
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -62,6 +64,58 @@ public class Observable<T> {
         }
 
         return disposable;
+    }
+
+    public Observable<T> subscribeOn(Scheduler scheduler) {
+        if (scheduler == null) {
+            throw new NullPointerException("scheduler is null");
+        }
+
+        return Observable.create(emitter ->
+                scheduler.execute(() ->
+                        this.subscribe(new Observer<>() {
+                            @Override
+                            public void onNext(T item) {
+                                emitter.onNext(item);
+                            }
+
+                            @Override
+                            public void onError(Throwable throwable) {
+                                emitter.onError(throwable);
+                            }
+
+                            @Override
+                            public void onComplete() {
+                                emitter.onComplete();
+                            }
+                        })
+                )
+        );
+    }
+
+    public Observable<T> observeOn(Scheduler scheduler) {
+        if (scheduler == null) {
+            throw new NullPointerException("scheduler is null");
+        }
+
+        return Observable.create(emitter ->
+                this.subscribe(new Observer<>() {
+                    @Override
+                    public void onNext(T item) {
+                        scheduler.execute(() -> emitter.onNext(item));
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        scheduler.execute(() -> emitter.onError(throwable));
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        scheduler.execute(emitter::onComplete);
+                    }
+                })
+        );
     }
 
     public <R> Observable<R> map(Function<T, R> mapper) {

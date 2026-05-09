@@ -281,3 +281,4 @@ class ObservableTest {
         assertNotNull(disposable);
         assertTrue(disposable.isDisposed());
     }
+}
