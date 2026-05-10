@@ -179,6 +179,57 @@ public class Observable<T> {
         );
     }
 
+    public <R> Observable<R> flatMap(Function<T, Observable<R>> mapper) {
+        if (mapper == null) {
+            throw new NullPointerException("mapper is null");
+        }
+
+        return Observable.create(emitter ->
+                this.subscribe(new Observer<>() {
+                    @Override
+                    public void onNext(T item) {
+                        try {
+                            Observable<R> innerObservable = mapper.apply(item);
+
+                            if (innerObservable == null) {
+                                emitter.onError(new NullPointerException("mapper returned null"));
+                                return;
+                            }
+
+                            innerObservable.subscribe(new Observer<>() {
+                                @Override
+                                public void onNext(R innerItem) {
+                                    emitter.onNext(innerItem);
+                                }
+
+                                @Override
+                                public void onError(Throwable throwable) {
+                                    emitter.onError(throwable);
+                                }
+
+                                @Override
+                                public void onComplete() {
+                                }
+                            });
+
+                        } catch (Throwable throwable) {
+                            emitter.onError(throwable);
+                        }
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        emitter.onError(throwable);
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        emitter.onComplete();
+                    }
+                })
+        );
+    }
+
     private static class SimpleDisposable implements Disposable {
 
         private volatile boolean disposed = false;

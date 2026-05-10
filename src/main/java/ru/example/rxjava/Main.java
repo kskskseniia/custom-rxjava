@@ -11,6 +11,8 @@ public class Main {
         IOThreadScheduler ioScheduler = new IOThreadScheduler();
         SingleThreadScheduler singleThreadScheduler = new SingleThreadScheduler();
 
+        System.out.println("=== map/filter + schedulers demo ===");
+
         Observable<Integer> observable = Observable.create(emitter -> {
             System.out.println("Source thread: " + Thread.currentThread().getName());
 
@@ -48,6 +50,67 @@ public class Main {
                 });
 
         Thread.sleep(1000);
+
+        System.out.println();
+        System.out.println("=== flatMap demo ===");
+
+        Observable<Integer> flatMapObservable = Observable.create(emitter -> {
+            emitter.onNext(1);
+            emitter.onNext(2);
+            emitter.onNext(3);
+            emitter.onComplete();
+        });
+
+        flatMapObservable
+                .flatMap(number -> Observable.<String>create(innerEmitter -> {
+                    innerEmitter.onNext("A" + number);
+                    innerEmitter.onNext("B" + number);
+                    innerEmitter.onComplete();
+                }))
+                .subscribe(new Observer<>() {
+                    @Override
+                    public void onNext(String item) {
+                        System.out.println("flatMap onNext: " + item);
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        System.out.println("flatMap onError: " + throwable.getMessage());
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        System.out.println("flatMap onComplete");
+                    }
+                });
+
+        System.out.println();
+        System.out.println("=== error handling demo ===");
+
+        Observable<Integer> errorObservable = Observable.create(emitter -> {
+            emitter.onNext(1);
+            emitter.onNext(2);
+            throw new RuntimeException("Test error from source");
+        });
+
+        errorObservable
+                .map(number -> "Value: " + number)
+                .subscribe(new Observer<>() {
+                    @Override
+                    public void onNext(String item) {
+                        System.out.println("error demo onNext: " + item);
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        System.out.println("error demo onError: " + throwable.getMessage());
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        System.out.println("error demo onComplete");
+                    }
+                });
 
         ioScheduler.shutdown();
         singleThreadScheduler.shutdown();
