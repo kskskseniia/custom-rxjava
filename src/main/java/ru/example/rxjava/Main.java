@@ -2,8 +2,10 @@ package ru.example.rxjava;
 
 import ru.example.rxjava.core.Observable;
 import ru.example.rxjava.core.Observer;
+import ru.example.rxjava.core.Disposable;
 import ru.example.rxjava.schedulers.IOThreadScheduler;
 import ru.example.rxjava.schedulers.SingleThreadScheduler;
+
 
 public class Main {
 
@@ -111,6 +113,40 @@ public class Main {
                         System.out.println("error demo onComplete");
                     }
                 });
+
+        System.out.println();
+        System.out.println("=== disposable demo ===");
+
+        Observable<String> disposableObservable = Observable.create(emitter -> {
+            Thread.sleep(300);
+            emitter.onNext("This item should not be printed");
+            emitter.onComplete();
+        });
+
+        Disposable disposable = disposableObservable
+                .subscribeOn(ioScheduler)
+                .subscribe(new Observer<>() {
+                    @Override
+                    public void onNext(String item) {
+                        System.out.println("disposable onNext: " + item);
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        System.out.println("disposable onError: " + throwable.getMessage());
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        System.out.println("disposable onComplete");
+                    }
+                });
+
+        disposable.dispose();
+
+        System.out.println("Subscription disposed: " + disposable.isDisposed());
+
+        Thread.sleep(500);
 
         ioScheduler.shutdown();
         singleThreadScheduler.shutdown();
